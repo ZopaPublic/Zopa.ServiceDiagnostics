@@ -1,1 +1,21 @@
 # Zopa.ServiceDiagnostics
+
+A really tiny library to enable you to easily monitor service health & build info, and see what's going on in an environment.
+
+If like us, you have many microservices in your production environment, sometimes things go wrong.  It could be a message queue misbehaving, a service failing to initialise or even an external resource going awry.  `Zopa.ServiceDiagnostics` provides a simple object model to help you quickly diagnose what is happening without having to trawl through logs.  It is in no way designed to replace a robust logging infrasturcture, and in fact is designed to play well with it, making use of correlation ids to help identify problems within log files.
+
+Health Checks
+-------------
+
+At the heart of the system is the health check runner.  It executes all supplied instances of `IAmAHealthCheck` or `IAmADescriptiveHealthCheck` passed to it in a somewhat parallelised fashion, and spits out the results
+
+Both interfaces are designed to perform essentially the same function - they test a specific dependency, but report their findings in slightly different ways.  The preferred impementation is `IAmAHealthCheck`
+
+## `IAmAHealthCheck`
+The simplest, and preferred method of performing a health check; though method `Task ExecuteAsync(Guid correlationId)`. To pass a health check, simply return a non-faulted task.  If a problem occurs, throw an exception.  This interface has the benefit that the result is automatically generated, including the execution time.
+
+## `IAmADescriptiveHealthCheck`
+This interface allows for slightly more descriptive results to be returned, but delegating responsibility for creating the result to the healtch check its self.  E.g. If an external system has a login phase and an execution phase, this interface could be used for returning descriptive diagnostics of where an error occured in the execution pipeline.
+
+## Correlation Ids
+These are purely optional parameters, and may be safely ignored if your estate doesn't make use of them.  Simply put, they are a unique & arbitrary identifier used for tying up combing through logs.  If a healthcheck run reposrts an error and you are logging all messages against a correlaiotn id, you can search for that id in your log viewor of choice to see excatly what lead to the issue.  A new correlation id will be generated for each run of the `HealthCheckRuner`, and passed to each health check.
