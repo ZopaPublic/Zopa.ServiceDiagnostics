@@ -7,7 +7,7 @@ namespace Zopa.ServiceDiagnostics
     [DataContract]
     public class ServiceInformation
     {
-        private ServiceInformation(Assembly entryAssembly, HealthCheckResults health)
+        public ServiceInformation(Assembly entryAssembly, HealthCheckResults health)
         {
             Version = entryAssembly.GetName().Version.ToString();
             Name = entryAssembly.GetName().Name;
@@ -31,13 +31,5 @@ namespace Zopa.ServiceDiagnostics
 
         [DataMember]
         public HealthCheckResults Health { get; set; }
-
-        public ServiceInformation Create(Assembly entryAssembly, HealthCheckResults healthCheckResults)
-        {
-            return new ServiceInformation(entryAssembly, healthCheckResults);
-        }
-
-        
-
     }
 }
