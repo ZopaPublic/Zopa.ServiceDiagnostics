@@ -25,7 +25,11 @@ Task("Build")
     .IsDependentOn("Restore_Nuget_Packages")
     .Does(() =>
 {
-    MSBuild("./Zopa.ServiceDiagnostics.sln");
+    MSBuild("./Zopa.ServiceDiagnostics.sln", new MSBuildSettings {
+      ToolVersion = MSBuildToolVersion.VS2015,
+      Configuration = configuration,
+      PlatformTarget = PlatformTarget.MSIL
+    });
 });
 
 Task("Test")
@@ -79,5 +83,8 @@ Task("Push")
 
     NuGetPush(file.FullName, settings);
 });
+
+Task("default")
+    .IsDependentOn("Package");
 
 RunTarget(target);
