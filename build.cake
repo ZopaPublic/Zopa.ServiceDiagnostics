@@ -37,7 +37,14 @@ Task("Test")
     .Does(() =>
 {
     var path = string.Format("./**/bin/{0}/Zopa.*.Tests.dll", configuration);
-    NUnit3(path);
+    NUnit3(path, new NUnit3Settings{
+      Results = "./tests.xml"
+    });
+
+    if(BuildSystem.IsRunningOnAppVeyor)
+    {
+        BuildSystem.AppVeyor.UploadTestResults("./tests.xml", AppVeyorTestResultsType.NUnit3);
+    }
 });
 
 Task("Package")
