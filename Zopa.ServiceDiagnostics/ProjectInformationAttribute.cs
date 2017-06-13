@@ -13,7 +13,7 @@ namespace Zopa.ServiceDiagnostics
             Email = email;
         }
 
-        [DataMember(Name = "repositoryUr")]
+        [DataMember(Name = "repositoryUri")]
         public string RepositoryUri { get; private set; }
 
         [DataMember(Name = "email")]
