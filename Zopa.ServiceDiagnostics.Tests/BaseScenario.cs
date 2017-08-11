@@ -1,15 +1,13 @@
 ﻿using System.Threading.Tasks;
-using NUnit.Framework;
 
 namespace Zopa.ServiceDiagnostics.Tests
 {
-    public abstract class AsyncScenario
+    public abstract class BaseScenario
     {
-        [OneTimeSetUp]
-        public async Task Setup()
+        protected BaseScenario()
         {
             Given();
-            await WhenAsync();
+            WhenAsync().Wait();
         }
 
         protected virtual void Given() { }

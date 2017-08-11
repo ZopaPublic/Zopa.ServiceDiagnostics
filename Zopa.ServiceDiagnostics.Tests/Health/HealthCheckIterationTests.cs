@@ -1,18 +1,26 @@
 using System;
 using System.Diagnostics;
-using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using FluentAssertions;
 using Moq;
-using NUnit.Framework;
+using Xunit;
+using Xunit.Abstractions;
+
 using Zopa.ServiceDiagnostics.Health;
 
 namespace Zopa.ServiceDiagnostics.Tests.Health
 {
     public class HealthCheckIterationTests
     {
-        [Test]
+        private readonly ITestOutputHelper _output;
+
+        public HealthCheckIterationTests(ITestOutputHelper output)
+        {
+            _output = output;
+        }
+
+        [Fact]
         public async Task HealthChecks_should_be_executed_in_parallel()
         {
             var simpleWaiters = Enumerable.Repeat("", 10).Select(x => new NoddyHealthCheck(100));
@@ -25,12 +33,12 @@ namespace Zopa.ServiceDiagnostics.Tests.Health
             await runner.DoAsync();
 
             var elapsed = sw.ElapsedMilliseconds;
-            await TestContext.Out.WriteLineAsync($"Took {elapsed}ms");
+            _output.WriteLine($"Took {elapsed}ms");
 
             elapsed.Should().BeLessThan(2000); //much less than the 2000 it would take for serial execution
         }
 
-        [Test]
+        [Fact]
         public async Task The_runner_should_execute_each_simple_check_once()
         {
             var simpleWaiterMocks = Enumerable.Repeat("", 3).Select(x =>
@@ -48,7 +56,7 @@ namespace Zopa.ServiceDiagnostics.Tests.Health
             }
         }
 
-        [Test]
+        [Fact]
         public async Task The_runner_should_execute_each_descriptive_check_once()
         {
             var descriptiveWaiterMocks = Enumerable.Repeat("", 3).Select(x =>
@@ -66,7 +74,7 @@ namespace Zopa.ServiceDiagnostics.Tests.Health
             }
         }
 
-        [Test]
+        [Fact]
         public async Task The_runner_should_report_on_each_simple_health_check()
         {
             var first = new NoddyHealthCheck(name: "first");
@@ -79,7 +87,7 @@ namespace Zopa.ServiceDiagnostics.Tests.Health
             result.Results.Should().Contain(x => x.Name == "second");
         }
 
-        [Test]
+        [Fact]
         public async Task The_runner_should_report_on_each_descriptive_health_check()
         {
             var first = new NoddyHealthCheck(name: "first");

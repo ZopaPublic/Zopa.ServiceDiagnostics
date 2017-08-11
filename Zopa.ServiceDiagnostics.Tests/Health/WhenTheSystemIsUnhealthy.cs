@@ -3,68 +3,78 @@ using System.Linq;
 using System.Threading.Tasks;
 using FluentAssertions;
 using Moq;
-using NUnit.Framework;
+using Xunit;
 using Zopa.ServiceDiagnostics.Health;
 
 namespace Zopa.ServiceDiagnostics.Tests.Health
 {
-    public class WhenTheSystemIsUnhealthy : AsyncScenario
+    public class WhenTheSystemIsUnhealthy : IClassFixture<WhenTheSystemIsUnhealthy.Scenario>
     {
-        private const string Name = "some_name";
-        private readonly Exception _exception = new Exception("cheese");
-
-        private HealthCheckRunner _runner;
-        private Mock<IAmAHealthCheck> _healthCheck;
-
-        private HealthCheckResults _result;
-
-        protected override void Given()
+        public class Scenario : BaseScenario
         {
-            _healthCheck = new Mock<IAmAHealthCheck>();
-            _healthCheck.Setup(x => x.Name).Returns(Name);
-            _healthCheck.Setup(x => x.ExecuteAsync(It.IsAny<Guid>())).Throws(_exception);
-            _runner = new HealthCheckRunner(new[] { _healthCheck.Object }, Enumerable.Empty<IAmADescriptiveHealthCheck>());
+            public const string Name = "some_name";
+            private readonly Exception _exception = new Exception("cheese");
+
+            private HealthCheckRunner _runner;
+            private Mock<IAmAHealthCheck> _healthCheck;
+
+            public HealthCheckResults Result;
+
+            protected override void Given()
+            {
+                _healthCheck = new Mock<IAmAHealthCheck>();
+                _healthCheck.Setup(x => x.Name).Returns(Name);
+                _healthCheck.Setup(x => x.ExecuteAsync(It.IsAny<Guid>())).Throws(_exception);
+                _runner = new HealthCheckRunner(new[] { _healthCheck.Object }, Enumerable.Empty<IAmADescriptiveHealthCheck>());
+            }
+
+            protected override async Task WhenAsync()
+            {
+                Result = await _runner.DoAsync();
+            }
         }
 
-        protected override async Task WhenAsync()
+        readonly Scenario _scenario;
+
+        public WhenTheSystemIsUnhealthy(Scenario scenario)
         {
-            _result = await _runner.DoAsync();
+            _scenario = scenario;
         }
 
-        [Test]
+        [Fact]
         public void One_result_should_be_returned()
         {
-            _result.Results.Count().Should().Be(1);
+            _scenario.Result.Results.Count().Should().Be(1);
         }
 
-        [Test]
+        [Fact]
         public void The_results_name_should_be_that_of_the_health_check()
         {
-            _result.Results.First().Name.Should().Be(Name);
+            _scenario.Result.Results.First().Name.Should().Be(Scenario.Name);
         }
 
-        [Test]
+        [Fact]
         public void The_result_should_indicate_failure()
         {
-            _result.Results.First().Passed.Should().BeFalse();
+            _scenario.Result.Results.First().Passed.Should().BeFalse();
         }
 
-        [Test]
+        [Fact]
         public void The_result_should_contain_an_exception_message()
         {
-            _result.Results.First().ExceptionMessage.Should().NotBeEmpty();
+            _scenario.Result.Results.First().ExceptionMessage.Should().NotBeEmpty();
         }
 
-        [Test]
+        [Fact]
         public void The_result_should_contain_the_correct_exception_message()
         {
-            _result.Results.First().ExceptionMessage?.Should().StartWith("cheese");
+            _scenario.Result.Results.First().ExceptionMessage?.Should().StartWith("cheese");
         }
 
-        [Test]
+        [Fact]
         public void The_result_should_contain_a_correlation_id()
         {
-            _result.CorrelationId.Should().NotBeEmpty();
+            _scenario.Result.CorrelationId.Should().NotBeEmpty();
         }
     }
 }
