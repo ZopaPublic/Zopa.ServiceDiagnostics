@@ -6,7 +6,16 @@ var target = Argument("target", "Package");
 var configuration = Argument("configuration", "Debug");
 var nugetKey = Argument("nugetKey", environmentKey);
 
-Information("nugetKey: " + nugetKey);
+if(nugetKey == null)
+{
+	Warning("Nuget key is not set!");
+}
+else
+{
+var publicNugetKey =  nugetKey.Substring(0, Math.Min(nugetKey.Length, 5));
+Information("nugetKey starts: " + publicNugetKey);
+}
+
 
 Task("Clean")
     .Does(() => 
