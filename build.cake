@@ -26,7 +26,7 @@ Task("Build")
     .Does(() =>
 {
     MSBuild("./Zopa.ServiceDiagnostics.sln", new MSBuildSettings {
-      ToolVersion = MSBuildToolVersion.VS2015,
+      ToolVersion = MSBuildToolVersion.VS2017,
       Configuration = configuration,
       PlatformTarget = PlatformTarget.MSIL
     });
@@ -47,26 +47,9 @@ Task("Test")
     }
 });
 
-Task("Package")
-    .IsDependentOn("Test")
-    .Does(() =>
-{
-    var binDir = string.Format("./Zopa.ServiceDiagnostics/bin/{0}", configuration);
-	var settings = new NuGetPackSettings
-    {
-        BasePath = binDir,
-        Symbols=true,
-        Properties = new Dictionary<string, string>
-        {
-            { "Configuration", configuration }
-        }
-    };
-
-    NuGetPack("./Zopa.ServiceDiagnostics/Zopa.ServiceDiagnostics.csproj", settings);
-});
 
 Task("Push")
-    .IsDependentOn("Package")
+    .IsDependentOn("Test")
     .Does(() =>
 {
     if(string.IsNullOrEmpty(nugetKey))
@@ -74,13 +57,14 @@ Task("Push")
         throw new InvalidOperationException("Could not find nuget key.  It should be set in the 'NugetKey environment variable, or passed in as the 'nugetKey' argument");
     }
 
-    var file = new DirectoryInfo(".")
+	var path = "./Zopa.ServiceDiagnostics/bin/" + configuration;
+    var file = new DirectoryInfo(path)
                     .GetFiles("*.nupkg")
                     .OrderByDescending(x => x.CreationTimeUtc)
                     .FirstOrDefault();
     if(file==null)
     {
-        throw new InvalidOperationException("Could not find any nupkg files");
+        throw new InvalidOperationException("Could not find any nupkg files in " + path);
     }
 
     var settings = new NuGetPushSettings{
@@ -92,6 +76,6 @@ Task("Push")
 });
 
 Task("default")
-    .IsDependentOn("Package");
+    .IsDependentOn("Test");
 
 RunTarget(target);
