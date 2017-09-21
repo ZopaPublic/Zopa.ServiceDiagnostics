@@ -1,6 +1,7 @@
 using System;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
 using Moq;
@@ -30,7 +31,7 @@ namespace Zopa.ServiceDiagnostics.Tests.Health
 
             var sw = Stopwatch.StartNew();
 
-            await runner.DoAsync();
+            await runner.DoAsync(CancellationToken.None);
 
             var elapsed = sw.ElapsedMilliseconds;
             _output.WriteLine($"Took {elapsed}ms");
@@ -44,15 +45,15 @@ namespace Zopa.ServiceDiagnostics.Tests.Health
             var simpleWaiterMocks = Enumerable.Repeat("", 3).Select(x =>
             {
                 var waiter = new Mock<IAmAHealthCheck>();
-                waiter.Setup(w => w.ExecuteAsync(It.IsAny<Guid>())).Returns(Task.FromResult(0));
+                waiter.Setup(w => w.ExecuteAsync(It.IsAny<Guid>(), CancellationToken.None)).Returns(Task.FromResult(0));
                 return waiter;
             }).ToArray();
 
-            await new HealthCheckRunner(simpleWaiterMocks.Select(x => x.Object), Enumerable.Empty<IAmADescriptiveHealthCheck>()).DoAsync();
+            await new HealthCheckRunner(simpleWaiterMocks.Select(x => x.Object), Enumerable.Empty<IAmADescriptiveHealthCheck>()).DoAsync(CancellationToken.None);
 
             foreach (var waiterMock in simpleWaiterMocks)
             {
-                waiterMock.Verify(x => x.ExecuteAsync(It.IsAny<Guid>()), Times.Once);
+                waiterMock.Verify(x => x.ExecuteAsync(It.IsAny<Guid>(), CancellationToken.None), Times.Once);
             }
         }
 
@@ -62,15 +63,15 @@ namespace Zopa.ServiceDiagnostics.Tests.Health
             var descriptiveWaiterMocks = Enumerable.Repeat("", 3).Select(x =>
             {
                 var waiter = new Mock<IAmADescriptiveHealthCheck>();
-                waiter.Setup(w => w.ExecuteAsync(It.IsAny<Guid>(), It.IsAny<Stopwatch>())).ReturnsAsync(HealthCheckResult.Pass("", TimeSpan.Zero));
+                waiter.Setup(w => w.ExecuteAsync(It.IsAny<Guid>(), It.IsAny<Stopwatch>(), CancellationToken.None)).ReturnsAsync(HealthCheckResult.Pass("", TimeSpan.Zero));
                 return waiter;
             }).ToArray();
 
-            await new HealthCheckRunner(Enumerable.Empty<IAmAHealthCheck>(), descriptiveWaiterMocks.Select(x => x.Object)).DoAsync();
+            await new HealthCheckRunner(Enumerable.Empty<IAmAHealthCheck>(), descriptiveWaiterMocks.Select(x => x.Object)).DoAsync(CancellationToken.None);
 
             foreach (var waiterMock in descriptiveWaiterMocks)
             {
-                waiterMock.Verify(x => x.ExecuteAsync(It.IsAny<Guid>(), It.IsAny<Stopwatch>()), Times.Once);
+                waiterMock.Verify(x => x.ExecuteAsync(It.IsAny<Guid>(), It.IsAny<Stopwatch>(), CancellationToken.None), Times.Once);
             }
         }
 
@@ -80,7 +81,7 @@ namespace Zopa.ServiceDiagnostics.Tests.Health
             var first = new NoddyHealthCheck(name: "first");
             var second = new NoddyHealthCheck(name: "second");
 
-            var result = await new HealthCheckRunner(new[] { first, second }, Enumerable.Empty<IAmADescriptiveHealthCheck>()).DoAsync();
+            var result = await new HealthCheckRunner(new[] { first, second }, Enumerable.Empty<IAmADescriptiveHealthCheck>()).DoAsync(CancellationToken.None);
 
             result.Results.Count().Should().Be(2);
             result.Results.Should().Contain(x => x.Name == "first");
@@ -93,7 +94,7 @@ namespace Zopa.ServiceDiagnostics.Tests.Health
             var first = new NoddyHealthCheck(name: "first");
             var second = new NoddyHealthCheck(name: "second");
 
-            var result = await new HealthCheckRunner(Enumerable.Empty<IAmAHealthCheck>(), new[] { first, second }).DoAsync();
+            var result = await new HealthCheckRunner(Enumerable.Empty<IAmAHealthCheck>(), new[] { first, second }).DoAsync(CancellationToken.None);
 
             result.Results.Count().Should().Be(2);
             result.Results.Should().Contain(x => x.Name == "first");
@@ -112,14 +113,14 @@ namespace Zopa.ServiceDiagnostics.Tests.Health
 
             public string Name { get; }
 
-            async Task IAmAHealthCheck.ExecuteAsync(Guid correlationId)
+            async Task IAmAHealthCheck.ExecuteAsync(Guid correlationId, CancellationToken cancellationToken)
             {
-                await Task.Delay(_delayMilis);
+                await Task.Delay(_delayMilis, cancellationToken);
             }
 
-            async Task<HealthCheckResult> IAmADescriptiveHealthCheck.ExecuteAsync(Guid correlationId, Stopwatch sw)
+            async Task<HealthCheckResult> IAmADescriptiveHealthCheck.ExecuteAsync(Guid correlationId, Stopwatch sw, CancellationToken cancellationToken)
             {
-                await Task.Delay(_delayMilis);
+                await Task.Delay(_delayMilis, cancellationToken);
                 return HealthCheckResult.Pass(Name, sw.Elapsed);
             }
         }

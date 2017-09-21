@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Data.SqlClient;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Zopa.ServiceDiagnostics.Health.Checks
@@ -17,15 +18,15 @@ namespace Zopa.ServiceDiagnostics.Health.Checks
 
         public string Name => $"Sql connection check for {_connectionName}";
 
-        public async Task ExecuteAsync(Guid correlationId)
+        public async Task ExecuteAsync(Guid correlationId, CancellationToken cancellationToken)
         {
             using (var conn = new SqlConnection(_connectionString))
             {
-                await conn.OpenAsync();
+                await conn.OpenAsync(cancellationToken);
 
                 var command = new SqlCommand("select 1", conn);
 
-                await command.ExecuteScalarAsync();
+                await command.ExecuteScalarAsync(cancellationToken);
             }
         }
     }

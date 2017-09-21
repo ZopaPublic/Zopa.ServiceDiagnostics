@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
 using Moq;
@@ -24,13 +25,13 @@ namespace Zopa.ServiceDiagnostics.Tests.Health
             {
                 _healthCheck = new Mock<IAmAHealthCheck>();
                 _healthCheck.Setup(x => x.Name).Returns(Name);
-                _healthCheck.Setup(x => x.ExecuteAsync(It.IsAny<Guid>())).Throws(_exception);
+                _healthCheck.Setup(x => x.ExecuteAsync(It.IsAny<Guid>(), CancellationToken.None)).Throws(_exception);
                 _runner = new HealthCheckRunner(new[] { _healthCheck.Object }, Enumerable.Empty<IAmADescriptiveHealthCheck>());
             }
 
             protected override async Task WhenAsync()
             {
-                Result = await _runner.DoAsync();
+                Result = await _runner.DoAsync(CancellationToken.None);
             }
         }
 
