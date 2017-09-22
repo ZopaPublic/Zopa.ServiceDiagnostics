@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Zopa.ServiceDiagnostics.Health
@@ -16,7 +17,7 @@ namespace Zopa.ServiceDiagnostics.Health
             _descriptiveHealthChecks = descriptiveHealthChecks;
         }
 
-        public async Task<HealthCheckResults> DoAsync()
+        public async Task<HealthCheckResults> DoAsync(CancellationToken cancellationToken)
         {
             var tasks = new List<Task<HealthCheckResult>>();
 
@@ -24,12 +25,12 @@ namespace Zopa.ServiceDiagnostics.Health
 
             foreach (var check in _healthChecks)
             {
-                tasks.Add(RunStandardAsync(check, correlationId));
+                tasks.Add(RunStandardAsync(check, correlationId, cancellationToken));
             }
 
             foreach (var check in _descriptiveHealthChecks)
             {
-                tasks.Add(RunDescriptiveAsync(check, correlationId));
+                tasks.Add(RunDescriptiveAsync(check, correlationId, cancellationToken));
             }
 
             var results = await Task.WhenAll(tasks);
@@ -37,14 +38,14 @@ namespace Zopa.ServiceDiagnostics.Health
             return new HealthCheckResults(correlationId, results);
         }
 
-        private async Task<HealthCheckResult> RunStandardAsync(IAmAHealthCheck healthCheck, Guid correlationId)
+        private async Task<HealthCheckResult> RunStandardAsync(IAmAHealthCheck healthCheck, Guid correlationId, CancellationToken cancellationToken)
         {
             var sw = Stopwatch.StartNew();
 
             try
             {
                 
-                await healthCheck.ExecuteAsync(correlationId);
+                await healthCheck.ExecuteAsync(correlationId, cancellationToken);
                 return HealthCheckResult.Pass(healthCheck.Name, sw.Elapsed);
             }
             catch (Exception ex)
@@ -53,13 +54,13 @@ namespace Zopa.ServiceDiagnostics.Health
             }
         }
 
-        private async Task<HealthCheckResult> RunDescriptiveAsync(IAmADescriptiveHealthCheck healthCheck, Guid correlationId)
+        private async Task<HealthCheckResult> RunDescriptiveAsync(IAmADescriptiveHealthCheck healthCheck, Guid correlationId, CancellationToken cancellationToken)
         {
             var sw = Stopwatch.StartNew();
 
             try
             {
-                return await healthCheck.ExecuteAsync(correlationId, sw);
+                return await healthCheck.ExecuteAsync(correlationId, sw, cancellationToken);
             }
             catch (Exception ex)
             {
